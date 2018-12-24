@@ -25,34 +25,33 @@ object DataModel {
     private const val VALUE_TICKER_REQUEST_ACTION = "subscribe"
     private const val VALUE_TICKER_REQUEST_TYPE = "ticker"
 
+    private const val API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfdG9rZW5faWQiOiJhYjY3MTk0NS05NjA4LTRmYWMtYWIyMC1jYTRmZTZhMDQxYWQiLCJzY29wZSI6WyJzY29wZV9leGNoYW5nZV90cmFkZV9yZWFkIl0sInVzZXJfaWQiOiI5NmVjZDU0MS03YWJiLTQ4MzktOThiYS05YzgyYTQyY2M4NzAifQ.Tb-Jv_XWkCYqnSX4qEDsilBzRqiE2MzysLGlpCH1des.V2:0e1d023592bc0bceda07b0089f0ffc2692e2a79c42c01ea0da69014d957c61d7"
+
     val sChannelIdList : ArrayList<String> by lazy { ArrayList<String>() }
 
     private val mListenerList by lazy { ArrayList<DataReceiveCallBack>() }
 
     private var mWebSocketClient : WebSocketClient? = null
 
-    private val handler = Handler(Looper.getMainLooper())
+    private val mHandler = Handler(Looper.getMainLooper())
 
-    fun startDataInit(callback: DataInitCallBack) {
+    fun startAllTradeListFetching(callback : AllTradeFetchCallBack) {
         Thread {
-            val s = firstTimeFetch()
-            handler.post {
-                callback.onDataInitFinished(s)
+            val allTradeString = firstTimeFetch()
+            mHandler.post {
+                callback.onAllTradeFetchingFinished(allTradeString)
             }
         }.start()
     }
 
     private fun startDataReceive() {
         Log.d(TAG, "startDataReceive(): ")
-
         val map = HashMap<String, String>()
-        map["authorization"] =
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfdG9rZW5faWQiOiJhYjY3MTk0NS05NjA4LTRmYWMtYWIyMC1jYTRmZTZhMDQxYWQiLCJzY29wZSI6WyJzY29wZV9leGNoYW5nZV90cmFkZV9yZWFkIl0sInVzZXJfaWQiOiI5NmVjZDU0MS03YWJiLTQ4MzktOThiYS05YzgyYTQyY2M4NzAifQ.Tb-Jv_XWkCYqnSX4qEDsilBzRqiE2MzysLGlpCH1des.V2:0e1d023592bc0bceda07b0089f0ffc2692e2a79c42c01ea0da69014d957c61d7"
+        map["authorization"] = API_KEY
         mWebSocketClient = object : WebSocketClient(URI("wss://ws.cobinhood.com/v2/ws"), map) {
 
             override fun onOpen(handshakedata: ServerHandshake) {
                 Log.d(TAG, "onOpen(): start!")
-//                    mWebSocketClient?.send(s)
                 for (channelId : String in sChannelIdList) {
                     val requestJSONObject = JSONObject()
                     requestJSONObject.put(KEY_TICKER_REQUEST_ACTION, VALUE_TICKER_REQUEST_ACTION)
@@ -71,14 +70,14 @@ object DataModel {
                 val hArray = json.getJSONArray("h")
 
                 if (hArray[2] == "pong") {
-                    Handler(Looper.getMainLooper()).postDelayed({
+                    mHandler.postDelayed({
                         if (isOpen) {
                             mWebSocketClient?.send(PING_JSON)
                         }
                     }, 3000)
                 } else {
                     if (hArray[2] != "subscribed") {
-                        handler.post {
+                        mHandler.post {
                             for (listener : DataReceiveCallBack in mListenerList) {
                                 listener.onDataReceived(message)
                             }
@@ -141,7 +140,7 @@ object DataModel {
         fun onDataReceived(dataString : String)
     }
 
-    interface DataInitCallBack{
-        fun onDataInitFinished(dataString : String)
+    interface AllTradeFetchCallBack {
+        fun onAllTradeFetchingFinished(dataString : String)
     }
 }

@@ -7,7 +7,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-class ViewModel : DataModel.DataReceiveCallBack, DataModel.DataInitCallBack{
+class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack{
     companion object {
         private const val TAG = "ViewModel"
         private const val JSON_KEY_RESULT = "result"
@@ -36,14 +36,6 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.DataInitCallBack{
     private val mListenerList : ArrayList<ViewModelCallBack> by lazy { ArrayList<ViewModelCallBack>() }
 
     private var mTradeMap : HashMap<String, TradePair> = HashMap<String, TradePair>()
-
-    fun startDataUpdate() {
-        DataModel.startDataInit(this)
-    }
-
-    fun stopDataUpdate() {
-        DataModel.unRegisterDataModel(this)
-    }
 
     private fun parseDataStringToTradePairAll(dataString : String): HashMap<String, TradePair> {
         val tradeMap = HashMap<String, TradePair>()
@@ -126,19 +118,18 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.DataInitCallBack{
     }
 
     override fun onDataReceived(dataString: String) {
-        //Log.d(TAG, "onDataReceived(): dataString = $dataString")
-
+//        Log.d(TAG, "onDataReceived(): dataString = $dataString")
         val tradePair = parseDataStringToTradePairIndividual(dataString)
 
-        mTradeMap.put(tradePair.mChannelId, tradePair)
+        mTradeMap[tradePair.mChannelId] = tradePair
 
         for (listener in mListenerList) {
             listener.onDataChanged(generateFilteredTradeMap())
         }
     }
 
-    override fun onDataInitFinished(dataString: String) {
-        Log.d(TAG, "onDataInitFinished(): dataInitString = $dataString")
+    override fun onAllTradeFetchingFinished(dataString: String) {
+//        Log.d(TAG, "onAllTradeFetchingFinished(): dataInitString = $dataString")
         mTradeMap = parseDataStringToTradePairAll(dataString)
         for (listener : ViewModelCallBack in mListenerList) {
             listener.onDataChanged(mTradeMap)
@@ -147,14 +138,20 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.DataInitCallBack{
     }
 
     fun registerViewModel(listener : ViewModelCallBack) {
+        if (mListenerList.size == 0) {
+            DataModel.startAllTradeListFetching(this)
+        }
         mListenerList.add(listener)
     }
 
     fun unRegisterViewModel(listener : ViewModelCallBack) {
         mListenerList.remove(listener)
+        if (mListenerList.size == 0) {
+            DataModel.unRegisterDataModel(this)
+        }
     }
 
-    interface ViewModelCallBack{
+    interface ViewModelCallBack {
         fun onDataChanged(tradeMap : HashMap<String, TradePair>)
     }
 }

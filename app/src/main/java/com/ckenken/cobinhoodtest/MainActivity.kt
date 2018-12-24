@@ -28,7 +28,7 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
 
     private val mViewModel by lazy { ViewModel() }
 
-    private var mTradeMap : HashMap<String, TradePair> = HashMap<String, TradePair>()  // why cannot lazy?
+    private var mTradeMap : HashMap<String, TradePair> = HashMap<String, TradePair>()
 
     private var mTradePairList = emptyList<TradePair>()
 
@@ -129,12 +129,10 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
     override fun onStart() {
         super.onStart()
         mViewModel.registerViewModel(this)
-        mViewModel.startDataUpdate()
     }
 
     override fun onStop() {
         super.onStop()
-        mViewModel.stopDataUpdate()
         mViewModel.unRegisterViewModel(this)
     }
 
