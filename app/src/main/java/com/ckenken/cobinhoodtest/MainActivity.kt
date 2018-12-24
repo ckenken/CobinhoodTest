@@ -73,6 +73,7 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack {
             if (rise < 0) {
                 holder.mRiseFallPercentageTextView.setTextColor(Color.RED)
             } else if (rise > 0) {
+                holder.mRiseFallPercentageTextView.text = "+" + holder.mRiseFallPercentageTextView.text
                 holder.mRiseFallPercentageTextView.setTextColor(Color.GREEN)
             } else {
                 holder.mRiseFallPercentageTextView.setTextColor(Color.WHITE)
