@@ -5,7 +5,7 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
-import android.os.Message
+import android.os.Looper
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
@@ -19,11 +19,10 @@ import android.util.Log
 import android.view.*
 
 
-class MainActivity : Activity(), ViewModel.ViewModelCallBack{
+class MainActivity : Activity(), ViewModel.ViewModelCallBack {
 
     companion object {
         const val TAG = "MainActivity"
-        const val REFRESH_LIST = 0
     }
 
     private val mViewModel by lazy { ViewModel() }
@@ -36,16 +35,9 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
 
     private val mRecyclerAdapter by lazy { RecyclerAdapter(this) }
 
-    private var mHandler: Handler = object : Handler() {
-        override fun handleMessage(msg: Message) {
-            super.handleMessage(msg)
+    private val mHandler by lazy { Handler(Looper.getMainLooper()) }  // Main looper Handler for handling callBack to avoid multi-thread issue
 
-            when (msg.what) {
-                REFRESH_LIST -> mRecyclerAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
+    // Observer for filtering trade pair
     private val searchEditTextTextWatcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
 
@@ -94,7 +86,7 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
@@ -122,7 +114,7 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
         searchEditText.addTextChangedListener(searchEditTextTextWatcher)
 
         mRecyclerView.adapter = mRecyclerAdapter
-        mRecyclerView.layoutManager = LinearLayoutManager(this)
+        mRecyclerView.layoutManager = LinearLayoutManager(this)  // default using LinearLayoutManager
         mRecyclerView.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
     }
 
@@ -136,6 +128,7 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
         mViewModel.unRegisterViewModel(this)
     }
 
+    // Update list using data from ViewModel
     override fun onDataChanged(tradeMap: HashMap<String, TradePair>) {
         val newMap: HashMap<String, TradePair> = HashMap()
         newMap.putAll(tradeMap)
@@ -146,6 +139,9 @@ class MainActivity : Activity(), ViewModel.ViewModelCallBack{
             newList.add(tradeItem.value)
         }
         mTradePairList = newList
-        mHandler.obtainMessage(REFRESH_LIST).sendToTarget()
+
+        mHandler.post {
+            mRecyclerAdapter.notifyDataSetChanged()
+        }
     }
 }

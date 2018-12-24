@@ -33,8 +33,9 @@ object DataModel {
 
     private var mWebSocketClient : WebSocketClient? = null
 
-    private val mHandler = Handler(Looper.getMainLooper())
+    private val mHandler by lazy { Handler(Looper.getMainLooper()) } // Using main looper Handler to pass the data to callBack to avoid multi-thread issue.
 
+    // Create a new Thread to start getting all trade data using http API (only at first time)
     fun startAllTradeListFetching(callback : AllTradeFetchCallBack) {
         Thread {
             val allTradeString = firstTimeFetch()
@@ -44,6 +45,7 @@ object DataModel {
         }.start()
     }
 
+    // Start receive data using Web API (by WebSocket)
     private fun startDataReceive() {
         Log.d(TAG, "startDataReceive(): ")
         val map = HashMap<String, String>()
@@ -65,10 +67,11 @@ object DataModel {
             }
 
             override fun onMessage(message: String) {
-                Log.d(TAG, "onMessage(): message = $message")
+//                Log.d(TAG, "onMessage(): message = $message")
                 val json = JSONObject(message)
                 val hArray = json.getJSONArray("h")
 
+                // ping/pong in 3 sec
                 if (hArray[2] == "pong") {
                     mHandler.postDelayed({
                         if (isOpen) {
@@ -98,6 +101,7 @@ object DataModel {
         mWebSocketClient?.connect()
     }
 
+    // Get all trading list first by Http Get API
     private fun firstTimeFetch() : String {
         val result = StringBuilder()
 
@@ -122,6 +126,7 @@ object DataModel {
     }
 
     fun registerDataModel(listener : DataReceiveCallBack) {
+        // if first register, start WebSocket to receiving data
         if (mListenerList.size == 0) {
             startDataReceive()
         }
@@ -129,6 +134,7 @@ object DataModel {
     }
 
     fun unRegisterDataModel(listener : DataReceiveCallBack) {
+        // if no listener remain, stop WebSocket
         mListenerList.remove(listener)
         if (mListenerList.size == 0 && mWebSocketClient != null) {
             mWebSocketClient?.close()
@@ -136,10 +142,12 @@ object DataModel {
         }
     }
 
+    // CallBack function for passing data from ViewModel to DataModel when receiving data from WebSocket
     interface DataReceiveCallBack {
         fun onDataReceived(dataString : String)
     }
 
+    // CallBack function for passing data from ViewModel to DataModel when receiving all trading (first time only) from http API
     interface AllTradeFetchCallBack {
         fun onAllTradeFetchingFinished(dataString : String)
     }

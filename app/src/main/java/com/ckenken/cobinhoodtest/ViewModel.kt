@@ -23,6 +23,7 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
         private const val JSON_KEY_LOWEST_ASK = "lowest_ask"
     }
 
+    // filter string for searching trade pairs
     var searchString : String = ""
     set(value){
         Log.d(TAG, "setter(): field = $field")
@@ -35,7 +36,7 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
 
     private val mListenerList : ArrayList<ViewModelCallBack> by lazy { ArrayList<ViewModelCallBack>() }
 
-    private var mTradeMap : HashMap<String, TradePair> = HashMap<String, TradePair>()
+    private var mTradeMap : HashMap<String, TradePair> = HashMap<String, TradePair>()   // Main data
 
     private fun parseDataStringToTradePairAll(dataString : String): HashMap<String, TradePair> {
         val tradeMap = HashMap<String, TradePair>()
@@ -70,19 +71,8 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
     }
 
     private fun parseDataStringToTradePairIndividual(dataString : String) : TradePair {
-
-        // {"h":["ticker.COB-ETH","2","s"],"d":["1545543360000","0.0001066","0.0001089","2944107.851707899","0.0001092","0.000105","0.0001054","0.0001078"]}
-
-        //    timestamp: ticker timestamp in milliseconds
-        //    highest_bid: best bid price in current order book
-        //    lowest_ask: best ask price in current order book
-        //    24h_volume: trading volume of the last 24 hours
-        //    24h_low: lowest trade price of the last 24 hours
-        //    24h_high: highest trade price of the last 24 hours
-        //    24h_open: first trade price of the last 24 hours
-        //    last_trade_price: latest trade price
-
         val json = JSONObject(dataString)
+
         val hArray = json.getJSONArray("h")
         val dArray : JSONArray = json.getJSONArray("d")
 
@@ -102,8 +92,6 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
     private fun generateFilteredTradeMap() : HashMap<String, TradePair> {
         val tempMap = HashMap<String, TradePair>()
 
-        Log.d(TAG, "searchString = $searchString")
-
         if (TextUtils.isEmpty(searchString)) {
             tempMap.putAll(mTradeMap)
             return tempMap
@@ -117,6 +105,7 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
         return tempMap
     }
 
+    // CallBack function for WebSocket data receiving
     override fun onDataReceived(dataString: String) {
 //        Log.d(TAG, "onDataReceived(): dataString = $dataString")
         val tradePair = parseDataStringToTradePairIndividual(dataString)
@@ -128,6 +117,7 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
         }
     }
 
+    // CallBack function for Http data (only first time)
     override fun onAllTradeFetchingFinished(dataString: String) {
 //        Log.d(TAG, "onAllTradeFetchingFinished(): dataInitString = $dataString")
         mTradeMap = parseDataStringToTradePairAll(dataString)
@@ -138,6 +128,7 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
     }
 
     fun registerViewModel(listener : ViewModelCallBack) {
+        // if first register, start fetching data
         if (mListenerList.size == 0) {
             DataModel.startAllTradeListFetching(this)
         }
@@ -145,12 +136,14 @@ class ViewModel : DataModel.DataReceiveCallBack, DataModel.AllTradeFetchCallBack
     }
 
     fun unRegisterViewModel(listener : ViewModelCallBack) {
+        // if no register remain, stop fetching data from WebSocket
         mListenerList.remove(listener)
         if (mListenerList.size == 0) {
             DataModel.unRegisterDataModel(this)
         }
     }
 
+    // CallBack function for passing data from ViewModel to View
     interface ViewModelCallBack {
         fun onDataChanged(tradeMap : HashMap<String, TradePair>)
     }
