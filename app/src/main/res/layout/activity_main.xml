@@ -11,7 +11,7 @@
 
     <EditText
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:inputType="textPersonName"
             android:hint="@string/search_trade_pair_hint"
             android:ems="10"
